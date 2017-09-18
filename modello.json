@@ -1,0 +1,1140 @@
+{
+	"name": "NAT_LB",
+	"types": [
+		{
+			"name": "HostNat",
+			"type": "entry",
+			"params": [
+				{
+					"type": "Host",
+					"name": "host"
+				},
+				{
+					"type": "NatInfrastructureResource",
+					"name": "nat"
+				}
+			]
+		}
+	],
+	"variables": [
+		{
+			"name": "active_hosts",
+			"type": "TimeoutMap",
+			"key_of": "String",
+			"value_of": "HostNat",
+			"params": [
+				{
+					"type": "string",
+					"value": "active_hosts"
+				},
+				{
+					"type": "integer",
+					"value": 60000
+				}
+			]
+		},
+		{
+			"name": "hosts",
+			"type": "ArrayList",
+			"list_of": "Host"
+		},
+		{
+			"name": "lbport",
+			"type": "String",
+			"params": [
+				{
+					"type": "string",
+					"value": "vnf:SWITCH_LAN:port1:0"
+				}
+			]
+		},
+		{
+			"name": "lbmac",
+			"type": "String",
+			"params": [
+				{
+					"type": "string",
+					"value": "02:01:02:03:04:05"
+				}
+			]
+		},
+		{
+			"name": "counter",
+			"type": "Integer",
+			"params": [
+				{
+					"type": "integer",
+					"value": "0"
+				}
+			]
+		}
+	],
+	"state": [
+		{
+			"id": "nat_session_state",
+			"type": "polling",
+			"check_every": "100ms",
+			"check_method": "getNatSession",
+			"check_type": "list",
+			"param_type": "NatSession",
+			"check_on": [
+				{
+					"type": "NatInfrastructureResource"
+				}
+			]
+		},
+		{
+			"id": "host_table",
+			"type": "internal",
+			"check_on": [
+				{
+					"name": "active_hosts"
+				}
+			]
+		}
+	],
+	"events": [
+		{
+			"id": "on_new_nat_session",
+			"on": "nat_session_state",
+			"type": "NEW",
+			"params": [
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				},
+				{
+					"name": "session",
+					"type": "NatSession"
+				}
+			],
+			"actions": [
+				"action_session_new"
+			]
+		},
+		{
+			"id": "on_del_nat_session",
+			"on": "nat_session_state",
+			"type": "DEL",
+			"params": [
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				},
+				{
+					"name": "session",
+					"type": "NatSession"
+				}
+			],
+			"actions": [
+				"action_session_del"
+			]
+		},
+		{
+			"id": "on_new_host",
+			"on": "host_table",
+			"type": "NEW",
+			"params": [
+				{
+					"name": "hostIp",
+					"type": "String"
+				},
+				{
+					"name": "hostNat",
+					"type": "HostNat"
+				}
+			],
+			"actions": [
+				"action_host_new",
+				"balance"
+			]
+		},
+		{
+			"id": "on_host_deleted",
+			"on": "host_table",
+			"type": "DEL",
+			"params": [
+				{
+					"name": "hostIp",
+					"type": "String"
+				},
+				{
+					"name": "hostNat",
+					"type": "HostNat"
+				}
+			],
+			"actions": [
+				"action_host_del",
+				"balance"
+			]
+		}
+	],
+	"infra_events": [
+		{
+			"id": "on_new_nat",
+			"type": "NEW",
+			"resource_type": "NatInfrastructureResource",
+			"resource_name": "nat",
+			"actions": [
+				"on_new_nat"
+			]
+		},
+		{
+			"id": "on_removing_nat",
+			"type": "REMOVING",
+			"resource_type": "NatInfrastructureResource",
+			"resource_name": "nat",
+			"actions": [
+				"on_removing_nat"
+			]
+		}
+	],
+	"actions": [
+		{
+			"id": "balance",
+			"params": [
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				}
+			],
+			"steps": [
+				{
+					"macro":"min",
+					"on":
+					{
+						"type":"macro",
+						"macro":
+						{
+							"macro":"groupby",
+							"on":
+							{
+								"type":"macro",
+								"macro":
+								{
+									"macro":"map",
+									"on":
+									{
+										"type":"macro",
+										"macro":
+										{
+											"macro":"method",
+											"method":"values",
+											"on":
+											{
+												"type":"variable",
+												"variable":"active_hosts"
+											}
+										}
+									},
+									"map_type":"HostNat",
+									"map_method":"getNat"
+								}
+							}
+						}
+					},
+					"assign_to":"ret",
+					"type":"Optional<Map.Entry<NatInfrastructureResource, Long>>"
+				},
+				{
+					"macro":"if",
+					"condition":
+					{
+						"operand1":
+						{
+							"type":"macro",
+							"macro":
+							{
+								"macro":"method",
+								"method":"isPresent",
+								"on":
+								{
+									"type":"variable",
+									"variable":"ret"
+								}
+							}
+						},
+						"operand2":
+						{
+							"type":"boolean",
+							"value":"true"
+						},
+						"compare_mode":"equal_to"
+					},
+					"on_true":
+					[
+						{
+							"macro": "method",
+							"method": "getKey",
+							"assign_to":"mynat",
+							"type":"NatInfrastructureResource",
+							"on": {
+								"type":"macro",
+								"macro":
+								{
+									"macro": "method",
+									"method": "get",
+									"on": {
+										"type":"variable",
+										"variable":"ret"
+									}
+								}
+							}
+						},
+						{
+							"macro": "method",
+							"method": "getInfrastructure",
+							"on": {
+								"type": "variable",
+								"variable": "mynat"
+							},
+							"assign_to": "infrastructure",
+							"type": "Infrastructure"
+						},
+						{
+							"macro": "method",
+							"method": "removeFlowRuleStartingWith",
+							"params": [
+								{
+									"type": "string",
+									"value": "LB_DEFAULT_"
+								}
+							],
+							"on": {
+								"type": "variable",
+								"variable": "infrastructure"
+							}
+						},
+						{
+							"macro": "method",
+							"method": "addFlowRule",
+							"on": {
+								"type": "variable",
+								"variable": "infrastructure"
+							},
+							"params": [
+								{
+									"type": "object",
+									"object": {
+										"type": "flowrule",
+										"id": {
+											"type": "macro",
+											"macro": {
+												"macro": "concat",
+												"params": [
+													{
+														"type": "string",
+														"value": "LB_DEFAULT_"
+													},
+													{
+														"type": "macro",
+														"macro": {
+															"macro": "method",
+															"method": "getId",
+															"on": {
+																"type": "variable",
+																"variable": "mynat"
+															}
+														}
+													}
+												]
+											}
+										},
+										"match": {
+											"portIn": {
+												"type": "variable",
+												"variable": "lbport"
+											}
+										},
+										"actions": {
+											"outputToPort": {
+												"type": "macro",
+												"macro": {
+													"macro": "concat",
+													"params": [
+														{
+															"type": "string",
+															"value": "vnf:"
+														},
+														{
+															"type": "macro",
+															"macro": {
+																"macro": "method",
+																"method": "getId",
+																"on": {
+																	"type": "variable",
+																	"variable": "mynat"
+																}
+															}
+														},
+														{
+															"type": "string",
+															"value": ":User:1"
+														}
+													]
+												}
+											}
+										},
+										"priority": {
+											"type": "integer",
+											"value": 1
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+
+			]
+		},
+		{
+			"id": "action_session_new",
+			"params": [
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				},
+				{
+					"name": "session",
+					"type": "NatSession"
+				}
+			],
+			"steps": [
+				{
+					"macro": "new",
+					"type": "Host",
+					"assign_to": "session_host",
+					"params": [
+						{
+							"type": "macro",
+							"macro": {
+								"macro": "method",
+								"method": "getSrc_address",
+								"on": {
+									"type": "variable",
+									"variable": "session"
+								}
+							}
+						},
+						{
+							"type": "macro",
+							"macro": {
+								"macro": "method",
+								"method": "getMac_address",
+								"on": {
+									"type": "macro",
+									"macro": {
+										"macro": "method",
+										"method": "get",
+										"params": [
+											{
+												"type": "integer",
+												"value": 0
+											}
+										],
+										"on": {
+											"type": "macro",
+											"macro": {
+												"macro": "filter",
+												"filter_method": "getIp_address",
+												"equal_to": {
+													"type": "macro",
+													"macro": {
+														"macro": "method",
+														"method": "getSrc_address",
+														"on": {
+															"type": "variable",
+															"variable": "session"
+														}
+													}
+												},
+												"on": {
+													"type": "macro",
+													"macro": {
+														"macro": "method",
+														"method": "getArpTable",
+														"on": {
+															"type": "variable",
+															"variable": "nat"
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					]
+				},
+				{
+					"macro": "method",
+					"method": "put",
+					"on": {
+						"type": "variable",
+						"variable": "active_hosts"
+					},
+					"params": [
+						{
+							"type": "macro",
+							"macro": {
+								"macro": "method",
+								"method": "getSrc_address",
+								"on": {
+									"type": "variable",
+									"variable": "session"
+								}
+							}
+						},
+						{
+							"type": "macro",
+							"macro": {
+								"macro": "new",
+								"type": "HostNat",
+								"params": [
+									{
+										"type": "variable",
+										"variable": "session_host"
+									},
+									{
+										"type": "variable",
+										"variable": "nat"
+									}
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "action_session_del",
+			"params": [
+				{
+					"name": "session",
+					"type": "NatSession"
+				},
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				}
+			],
+			"steps": [
+				{
+					"macro": "if",
+					"condition": {
+						"operand1": {
+							"type": "macro",
+							"macro": {
+								"macro": "method",
+								"method": "size",
+								"on": {
+									"type": "macro",
+									"macro": {
+										"macro": "filter",
+										"on": {
+											"type": "variable",
+											"variable": "nat.getNatSession()"
+										},
+										"filter_method": "getSrc_address",
+										"equal_to": {
+											"type": "macro",
+											"macro": {
+												"macro": "method",
+												"method": "getSrc_address",
+												"on": {
+													"type": "variable",
+													"variable": "session"
+												}
+											}
+										}
+									}
+								}
+							}
+						},
+						"operand2": {
+							"type": "integer",
+							"value": "0"
+						},
+						"compare_mode": "equal_to"
+					},
+					"on_true": [
+						{
+							"macro": "method",
+							"method": "startCounter",
+							"on": {
+								"type": "variable",
+								"variable": "active_hosts"
+							},
+							"params": [
+								{
+									"type": "macro",
+									"macro": {
+										"macro": "method",
+										"method": "getSrc_address",
+										"on": {
+											"type": "variable",
+											"variable": "session"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "action_host_new",
+			"params": [
+				{
+					"name": "host",
+					"type": "Host"
+				},
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				}
+			],
+			"steps": [
+				{
+					"macro": "method",
+					"method": "getHost",
+					"on": {
+						"type": "variable",
+						"variable": "hostNat"
+					},
+					"assign_to": "host",
+					"type": "Host"
+				},
+				{
+					"macro": "method",
+					"method": "getNat",
+					"on": {
+						"type": "variable",
+						"variable": "hostNat"
+					},
+					"assign_to": "nat",
+					"type": "NatInfrastructureResource"
+				},
+				{
+					"macro": "method",
+					"method": "add",
+					"on": {
+						"type": "variable",
+						"variable": "hosts"
+					},
+					"params": [
+						{
+							"type": "variable",
+							"variable": "host"
+						}
+					]
+				},
+				{
+					"macro": "method",
+					"method": "addFlowRule",
+					"on": {
+						"type": "macro",
+						"macro": {
+							"macro": "method",
+							"method": "getInfrastructure",
+							"on": {
+								"type": "macro",
+								"macro": {
+									"macro": "method",
+									"method": "getNat",
+									"on": {
+										"type": "variable",
+										"variable": "hostNat"
+									}
+								}
+							}
+						}
+					},
+					"params": [
+						{
+							"type": "object",
+							"object": {
+								"type": "flowrule",
+								"id": {
+									"type": "macro",
+									"macro": {
+										"macro": "concat",
+										"params": [
+											{
+												"type": "string",
+												"value": "LB_"
+											},
+											{
+												"type": "macro",
+												"macro": {
+													"macro": "method",
+													"method": "getValue",
+													"on": {
+														"type": "macro",
+														"macro": {
+															"macro": "method",
+															"method": "getMacAddress",
+															"on": {
+																"type": "variable",
+																"variable": "host"
+															}
+														}
+													}
+												}
+											},
+											{
+												"type": "variable",
+												"variable": "counter"
+											}
+										]
+									}
+								},
+								"match": {
+									"portIn": {
+										"type": "variable",
+										"variable": "lbport"
+									},
+									"sourceMac": {
+										"type": "macro",
+										"macro": {
+											"macro": "method",
+											"method": "getValue",
+											"on": {
+												"type": "macro",
+												"macro": {
+													"macro": "method",
+													"method": "getMacAddress",
+													"on": {
+														"type": "variable",
+														"variable": "host"
+													}
+												}
+											}
+										}
+									},
+									"destMac": {
+										"type": "variable",
+										"variable": "lbmac"
+									}
+								},
+								"actions": {
+									"outputToPort": {
+										"type": "macro",
+										"macro": {
+											"macro": "concat",
+											"params": [
+												{
+													"type": "string",
+													"value": "vnf:"
+												},
+												{
+													"type": "macro",
+													"macro": {
+														"macro": "method",
+														"method": "getId",
+														"on": {
+															"type": "variable",
+															"variable": "nat"
+														}
+													}
+												},
+												{
+													"type": "string",
+													"value": ":User:1"
+												}
+											]
+										}
+									}
+								},
+								"priority": {
+									"type": "integer",
+									"value": 2
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "action_host_del",
+			"params": [
+				{
+					"name": "host",
+					"type": "Host"
+				},
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				}
+			],
+			"steps": [
+				{
+					"macro": "method",
+					"method": "getHost",
+					"on": {
+						"type": "variable",
+						"variable": "hostNat"
+					},
+					"assign_to": "host",
+					"type": "Host"
+				},
+				{
+					"macro": "method",
+					"method": "remove",
+					"on": {
+						"type": "variable",
+						"variable": "hosts"
+					},
+					"params": [
+						{
+							"type": "variable",
+							"variable": "host"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "on_new_nat",
+			"params": [
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				}
+			],
+			"steps": [
+				{
+					"macro": "method",
+					"method": "getInfrastructure",
+					"on": {
+						"type": "variable",
+						"variable": "nat"
+					},
+					"assign_to": "infrastructure",
+					"type": "Infrastructure"
+				},
+				{
+					"macro": "method",
+					"method": "removeFlowRuleStartingWith",
+					"params": [
+						{
+							"type": "string",
+							"value": "LB_DEFAULT_"
+						}
+					],
+					"on": {
+						"type": "variable",
+						"variable": "infrastructure"
+					}
+				},
+				{
+					"macro": "method",
+					"method": "addFlowRule",
+					"on": {
+						"type": "variable",
+						"variable": "infrastructure"
+					},
+					"params": [
+						{
+							"type": "object",
+							"object": {
+								"type": "flowrule",
+								"id": {
+									"type": "macro",
+									"macro": {
+										"macro": "concat",
+										"params": [
+											{
+												"type": "string",
+												"value": "LB_DEFAULT_"
+											},
+											{
+												"type": "macro",
+												"macro": {
+													"macro": "method",
+													"method": "getId",
+													"on": {
+														"type": "variable",
+														"variable": "nat"
+													}
+												}
+											}
+										]
+									}
+								},
+								"match": {
+									"portIn": {
+										"type": "variable",
+										"variable": "lbport"
+									}
+								},
+								"actions": {
+									"outputToPort": {
+										"type": "macro",
+										"macro": {
+											"macro": "concat",
+											"params": [
+												{
+													"type": "string",
+													"value": "vnf:"
+												},
+												{
+													"type": "macro",
+													"macro": {
+														"macro": "method",
+														"method": "getId",
+														"on": {
+															"type": "variable",
+															"variable": "nat"
+														}
+													}
+												},
+												{
+													"type": "string",
+													"value": ":User:1"
+												}
+											]
+										}
+									}
+								},
+								"priority": {
+									"type": "integer",
+									"value": 1
+								}
+							}
+						}
+					]
+				},
+				{
+					"macro": "method",
+					"method": "addFlowRule",
+					"on": {
+						"type": "variable",
+						"variable": "infrastructure"
+					},
+					"params": [
+						{
+							"type": "object",
+							"object": {
+								"type": "flowrule",
+								"id": {
+									"type": "macro",
+									"macro": {
+										"macro": "concat",
+										"params": [
+											{
+												"type": "string",
+												"value": "LB_REPLY_"
+											},
+											{
+												"type": "macro",
+												"macro": {
+													"macro": "method",
+													"method": "getId",
+													"on": {
+														"type": "variable",
+														"variable": "nat"
+													}
+												}
+											}
+										]
+									}
+								},
+								"match": {
+									"portIn": {
+										"type": "macro",
+										"macro": {
+											"macro": "concat",
+											"params": [
+												{
+													"type": "string",
+													"value": "vnf:"
+												},
+												{
+													"type": "macro",
+													"macro": {
+														"macro": "method",
+														"method": "getId",
+														"on": {
+															"type": "variable",
+															"variable": "nat"
+														}
+													}
+												},
+												{
+													"type": "string",
+													"value": ":User:1"
+												}
+											]
+										}
+									}
+								},
+								"actions": {
+									"outputToPort": {
+										"type": "variable",
+										"variable": "lbport"
+									}
+								},
+								"priority": {
+									"type": "integer",
+									"value": 1
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "on_removing_nat",
+			"params":
+			[
+				{
+					"name": "nat",
+					"type": "NatInfrastructureResource"
+				}
+			],
+			"steps": []
+		}
+	],
+	"elementary_services": [
+		{
+			"name": "nat",
+			"implementations": [
+				{
+					"name": "Implementation1",
+					"qos": {
+						"type": "macro",
+						"macro": {
+							"macro": "division",
+							"params": [
+								{
+									"type": "macro",
+									"macro": {
+										"macro": "method",
+										"method": "size",
+										"on": {
+											"type": "macro",
+											"macro": {
+												"macro": "filter",
+												"filter_method": "getClass",
+												"on": {
+													"type": "variable",
+													"variable": "resourcesUsed"
+												},
+												"equal_to": {
+													"type": "variable",
+													"variable": "NatInfrastructureResource.class"
+												}
+											}
+										}
+									}
+								},
+								{
+									"type": "macro",
+									"macro": {
+										"macro": "method",
+										"method": "size",
+										"on": {
+											"type": "variable",
+											"variable": "hosts"
+										}
+									}
+								}
+							]
+						}
+					},
+					"resources": [
+						{
+							"template": "template_nat",
+							"type": "NatInfrastructureResource",
+							"remove_cost":
+							{
+								"type":"macro",
+								"macro":
+								{
+									"macro": "method",
+									"method": "get().getValue",
+									"on": {
+										"type":"macro",
+										"macro": {
+											"macro": "max",
+											"on": {
+												"type": "macro",
+												"macro": {
+													"macro": "groupby",
+													"on": {
+														"type": "macro",
+														"macro": {
+															"macro": "map",
+															"on": {
+																"type": "macro",
+																"macro": {
+																	"macro": "method",
+																	"method": "values",
+																	"on": {
+																		"type": "variable",
+																		"variable": "active_hosts"
+																	}
+																}
+															},
+															"map_type": "HostNat",
+															"map_method": "getNat"
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							},
+							"from": {
+								"type": "integer",
+								"value": 1
+							},
+							"to": {
+								"type": "macro",
+								"macro": {
+									"macro": "concat",
+									"params": [
+										{
+											"type": "macro",
+											"macro": {
+												"macro": "method",
+												"method": "size",
+												"on": {
+													"type": "variable",
+													"variable": "hosts"
+												}
+											}
+										},
+										{
+											"type": "integer",
+											"value": 1
+										}
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"templates": [
+		{
+			"id": "template_nat",
+			"resource": "NatInfrastructureResource",
+			"default_port_connections": {
+				"WAN": "SWITCH_WAN:port",
+				"management": "SWITCH_MAN:port"
+			},
+			"default_configuration": "nat_defaultconfig.json"
+		}
+	],
+	"default_nffg_filename": "test_nffg_nat.json"
+}
