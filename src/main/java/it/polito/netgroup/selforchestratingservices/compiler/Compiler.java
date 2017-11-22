@@ -28,7 +28,8 @@ public class Compiler
 			System.err.println("USAGE: model_filename java_package base_directory");
 			System.exit(1);
 		}
-		
+
+		//Reading JSON model
 		String model_json_filename="";
 		try
 		{
@@ -42,7 +43,8 @@ public class Compiler
 		String base_dir=args[2];
 		
 		ObjectMapper mapper = new ObjectMapper();
-		
+
+		//Parsing JSON model
 		SelfOrchestratorModel model=null;
 		try
 		{
@@ -54,56 +56,75 @@ public class Compiler
 		}
 	
 		String path = base_dir+pack.replace(".", "/")+"/";
+		//Creating the output directory from base directory and package name
 		new File(path).mkdirs();
 
+		//Foreach elementary service
 		for(ServiceDescription serviceDescription : model.serviceDescriptions)
 		{
+			//Create the associated class
 			writeClass("", model, pack, path, serviceDescription);
-			
+
+			//Foreach implementation of a elementary service
 			for ( ImplementationDescription implementationDescription : serviceDescription.implementations)
 			{
+				//Create the associated class
 				writeClass(serviceDescription.name,model,pack,path,implementationDescription);
-				
+
+				//Foreach ResourceRequirement of the implementation
 				for (ResourceRequirementsDescription resource : implementationDescription.resources_used)
 				{
+					//Create the associated class
 					writeClass(serviceDescription.name+implementationDescription.name,model,pack,path,resource);
 				}
 			}			
 		}
-		
+
+		//ForEach template defined inside the model
 		for(InfrastructureVNFTemplateDescription template : model.templates)
 		{
+			//Create the associated class
 			writeClass("",model,pack,path,template);			
 		}
 
+		//If there are some events that must be handled
 		if ( model.events != null ) {
 			for (EventDescription event : model.events) {
+				//Create the associated class
 				writeClass("", model, pack, path, event);
 			}
 		}
 
+		//If there are some infrastructure events that must be handled
 		if ( model.infraEvents != null) {
+			//Create the associated class
 			writeClass("", model, pack, path, model.infraEvents);
 		}
 
+
+		//If there are custom types
 		if ( model.types != null ) {
 			for (VariableTypeDescription type : model.types) {
+				//Create the associated class
 				writeClass("", model, pack, path, type);
 			}
 		}
-		
+
+		//Create the main class that describe the service
 		writeClass("", model,pack,path,model);
 
 	}
-	
+
+	//This function write inside a file the Java class associated to a JSON object
 	public static void writeClass(String prefix,SelfOrchestratorModel model,String pack , String path , GenerateJavaClass gjc)
 	{
+		//Get the Java code associated to the JSON object
 		String javaclass = gjc.getJavaClass(prefix,model,pack);
 
+		//Write inside a Java file
 		FileOutputStream out;
 		try
 		{
-			
 			out = new FileOutputStream(path+gjc.getJavaClassName(prefix)+".java");
 			out.write(javaclass.getBytes());
 			out.close();
