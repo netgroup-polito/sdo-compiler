@@ -1,0 +1,171 @@
+{
+	"name": "test_nffg_nat",
+	"variables":
+			[
+				{
+					"name": "lbmac",
+					"type": "String",
+					"params": [
+						{
+							"type": "string",
+							"value": "02:01:02:03:04:05"
+						}
+					]
+				}
+			],
+	"service_description": [
+		{
+			"name": "transcoder",
+			"implementations": [
+				{
+					"name": "trcd1",
+					"microservice_type": "TranscoderInfrastructureVNF",
+					"microservice_template": "template_transcoder",
+					"configurations": [
+						{
+							"qos_value": 100,
+							"configuration": [
+								{
+									"macro": "method",
+									"method": "setEnabled",
+									"on": {
+										"type": "variable",
+										"variable": "configuration"
+									},
+									"params": [
+										{
+											"type": "boolean",
+											"value": true
+										}
+									]
+								},
+								{
+									"macro": "method",
+									"method": "setTranscoderTemplate",
+									"on": {
+										"type": "variable",
+										"variable": "configuration"
+									},
+									"params": [
+										{
+											"type": "string",
+											"value": "transcode"
+										}
+									]
+								}
+							]
+						},
+						{
+							"qos_value": 50,
+							"configuration": [
+								{
+									"macro": "method",
+									"method": "setEnabled",
+									"on": {
+										"type": "variable",
+										"variable": "configuration"
+									},
+									"params": [
+										{
+											"type": "boolean",
+											"value": true
+										}
+									]
+								},
+								{
+									"macro": "method",
+									"method": "setTranscoderTemplate",
+									"on": {
+										"type": "variable",
+										"variable": "configuration"
+									},
+									"params": [
+										{
+											"type": "string",
+											"value": "TransrateLight"
+										}
+									]
+								}
+							]
+						}
+					],
+					"resources_used": [
+						{
+							"resource":"CPU",
+							"limit":
+							[
+								{
+									"resources_needed":
+									{
+										"type":"integer",
+										"value":4
+									},
+									"condition":
+									{
+										"operand1": {
+											"type": "macro",
+											"macro": {
+												"macro": "method",
+												"method": "getTranscoderTemplate",
+												"on": {
+													"type": "variable",
+													"variable": "configuration"
+												}
+											}
+										},
+										"operand2":
+										{
+											"type":"string",
+											"value": "transcode"
+										},
+										"compare_mode": "equal_to_obj"
+									}
+
+								},
+								{
+									"resources_needed":
+									{
+										"type":"integer",
+										"value":2
+									},
+									"condition":
+									{
+										"operand1": {
+											"type": "macro",
+											"macro": {
+												"macro": "method",
+												"method": "getTranscoderTemplate",
+												"on": {
+													"type": "variable",
+													"variable": "configuration"
+												}
+											}
+										},
+										"operand2":
+										{
+											"type":"string",
+											"value": "TransrateLight"
+										},
+										"compare_mode": "equal_to_obj"
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"templates": [
+		{
+			"id": "template_transcoder",
+			"vnf_type": "TranscoderInfrastructureVNF",
+			"default_port_connections": {
+				"Port": "SWLAN:port",
+				"management": "SWMAN:port"
+			},
+			"default_configuration": "transcoder_defaultconfig.json"
+		}
+	],
+	"default_nffg_filename": "test_nffg_transcoder_demo.json"
+}

@@ -4,9 +4,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import javax.annotation.Resource;
-
-public class ElementaryServiceDescription implements GenerateJavaClass
+public class ServiceDescription implements GenerateJavaClass
 {
 	@JsonProperty("name")
 	public String name;
@@ -25,9 +23,9 @@ public class ElementaryServiceDescription implements GenerateJavaClass
 				"\tpublic "+getJavaClassName(prefix)+"(Variables var)\n" + 
 				"\t{\n" + 
 				"\t\tsuper(var);\n"+
-				"\t\tList<Class<? extends ResourceTemplate>> resourceTemplates = new ArrayList<>();\n";
+				"\t\tList<Class<? extends VNFTemplate>> resourceTemplates = new ArrayList<>();\n";
 
-		for(ResourceTemplateDescription template : model.getTemplates()) {
+		for(InfrastructureVNFTemplateDescription template : model.getTemplates()) {
 			java += "\t\tresourceTemplates.add("+template.getJavaClassName(prefix)+".class);\n";
 		}
 

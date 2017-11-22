@@ -24,7 +24,13 @@ public class MethodMacroDescription extends MacroDescription
 	{
 		String java=super.getJavaCode(from_root,tabs,model);
 
-		java += on.getJavaCode(false,tabs,model)+"."+method+"(";
+		if ( on != null )
+		{
+			java += on.getJavaCode(false,tabs,model)+".";
+		}
+
+
+		java += method+"(";
 
 		if ( params != null )
 		{

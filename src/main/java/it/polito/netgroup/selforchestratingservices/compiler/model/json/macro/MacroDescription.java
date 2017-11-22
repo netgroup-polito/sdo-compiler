@@ -15,7 +15,8 @@ import java.security.acl.Group;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "macro")
 @JsonSubTypes({
     @JsonSubTypes.Type(value = NewMacroDescription.class, name = "new"),
-    @JsonSubTypes.Type(value = FilterMacroDescription.class, name = "filter"),
+		@JsonSubTypes.Type(value = ReturnMacroDescription.class, name = "return"),
+		@JsonSubTypes.Type(value = FilterMacroDescription.class, name = "filter"),
     @JsonSubTypes.Type(value = MethodMacroDescription.class, name = "method"),
     @JsonSubTypes.Type(value = IfMacroDescription.class, name = "if"),
     @JsonSubTypes.Type(value = DivisionMacroDescription.class, name = "division"),
@@ -37,10 +38,8 @@ public abstract class MacroDescription implements GenerateJavaCode
 	@JsonProperty("type")
 	String type;
 
-
 	@Override
-	public String getJavaCode(boolean from_root, int tabs, SelfOrchestratorModel model)
-	{
+	public String getJavaCode(boolean from_root, int tabs, SelfOrchestratorModel model){
 		String java = "";
 
 		if ( from_root )

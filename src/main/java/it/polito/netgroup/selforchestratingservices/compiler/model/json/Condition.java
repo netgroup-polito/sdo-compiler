@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.param.ParamDescription;
 
-public class IfCondition implements GenerateJavaCode
+public class Condition implements GenerateJavaCode
 {
 	public enum COMPARE_MODE {
 		equal_to,
+		equal_to_obj,
+		greater_equal_to
 	}
 	
 	@JsonProperty("operand1")
@@ -20,16 +22,29 @@ public class IfCondition implements GenerateJavaCode
 	
 	public String getJavaCode(boolean from_root, int tabs, SelfOrchestratorModel model)
 	{
-		return operand1.getJavaCode(false,tabs,model )+" "+ compareModeJavaCode(compare_mode) + " "+operand2.getJavaCode(false,tabs,model );
+		String end="";
+		if ( compare_mode == COMPARE_MODE.equal_to_obj)
+		{
+			end=")";
+		}
+		return operand1.getJavaCode(false,tabs,model )+ compareModeJavaCode(compare_mode) + operand2.getJavaCode(false,tabs,model ) + end;
 	}
 
 	private String compareModeJavaCode(COMPARE_MODE cm)
 	{
 		if ( cm == COMPARE_MODE.equal_to)
 		{
-			return "==";
+			return " == ";
 		}
-		return "??";
+		if ( cm == COMPARE_MODE.equal_to_obj)
+		{
+			return ".equals(";
+		}
+		else if ( cm == COMPARE_MODE.greater_equal_to)
+		{
+			return " >= ";
+		}
+		return " ?? ";
 	}
 	
 }

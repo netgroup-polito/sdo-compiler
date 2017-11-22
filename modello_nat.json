@@ -172,7 +172,7 @@
 	"infra_events": [
 		{
 			"id": "on_new_nat",
-			"type": "NEW",
+			"type": "NEW_RESOURCE",
 			"resource_type": "NatInfrastructureResource",
 			"resource_name": "nat",
 			"actions": [
@@ -181,7 +181,7 @@
 		},
 		{
 			"id": "on_removing_nat",
-			"type": "REMOVING",
+			"type": "REMOVING_RESOURCE",
 			"resource_type": "NatInfrastructureResource",
 			"resource_name": "nat",
 			"actions": [
@@ -200,83 +200,69 @@
 			],
 			"steps": [
 				{
-					"macro":"min",
-					"on":
-					{
-						"type":"macro",
-						"macro":
-						{
-							"macro":"groupby",
-							"on":
-							{
-								"type":"macro",
-								"macro":
-								{
-									"macro":"map",
-									"on":
-									{
-										"type":"macro",
-										"macro":
-										{
-											"macro":"method",
-											"method":"values",
-											"on":
-											{
-												"type":"variable",
-												"variable":"active_hosts"
+					"macro": "min",
+					"on": {
+						"type": "macro",
+						"macro": {
+							"macro": "groupby",
+							"on": {
+								"type": "macro",
+								"macro": {
+									"macro": "map",
+									"on": {
+										"type": "macro",
+										"macro": {
+											"macro": "method",
+											"method": "values",
+											"on": {
+												"type": "variable",
+												"variable": "active_hosts"
 											}
 										}
 									},
-									"map_type":"HostNat",
-									"map_method":"getNat"
+									"map_type": "HostNat",
+									"map_method": "getNat"
 								}
 							}
 						}
 					},
-					"assign_to":"ret",
-					"type":"Optional<Map.Entry<NatInfrastructureResource, Long>>"
+					"assign_to": "ret",
+					"type": "Optional<Map.Entry<NatInfrastructureResource, Long>>"
 				},
 				{
-					"macro":"if",
-					"condition":
-					{
-						"operand1":
-						{
-							"type":"macro",
-							"macro":
-							{
-								"macro":"method",
-								"method":"isPresent",
-								"on":
-								{
-									"type":"variable",
-									"variable":"ret"
+					"macro": "if",
+					"condition": {
+						"operand1": {
+							"type": "macro",
+							"macro": {
+								"macro": "method",
+								"method": "isPresent",
+								"on": {
+									"type": "variable",
+									"variable": "ret"
 								}
 							}
 						},
-						"operand2":
-						{
-							"type":"boolean",
-							"value":"true"
+						"operand2": {
+							"type": "boolean",
+							"value": "true"
 						},
-						"compare_mode":"equal_to"
+						"compare_mode": "equal_to"
 					},
-					"on_true":
-					[
+					"on_true": [
 						{
 							"macro": "method",
 							"method": "getKey",
-							"assign_to":"mynat",
-							"type":"NatInfrastructureResource",
+							"assign_to": "mynat",
+							"type": "NatInfrastructureResource",
 							"on": {
-								"type":"macro",
-								"macro":
-								{
+								"type": "macro",
+								"macro": {
 									"macro": "method",
 									"method": "get",
 									"on": {
-										"type":"variable",
-										"variable":"ret"
+										"type": "variable",
+										"variable": "ret"
 									}
 								}
 							}
@@ -385,7 +371,6 @@
 						}
 					]
 				}
-
 			]
 		},
 		{
@@ -534,8 +519,15 @@
 									"macro": {
 										"macro": "filter",
 										"on": {
-											"type": "variable",
-											"variable": "nat.getNatSession()"
+											"type": "macro",
+											"macro": {
+												"macro": "method",
+												"method": "getNatSession",
+												"on": {
+													"type": "variable",
+													"variable": "nat"
+												}
+											}
 										},
 										"filter_method": "getSrc_address",
 										"equal_to": {
@@ -991,8 +983,7 @@
 		},
 		{
 			"id": "on_removing_nat",
-			"params":
-			[
+			"params": [
 				{
 					"name": "nat",
 					"type": "NatInfrastructureResource"
@@ -1052,38 +1043,43 @@
 						{
 							"template": "template_nat",
 							"type": "NatInfrastructureResource",
-							"remove_cost":
-							{
-								"type":"macro",
-								"macro":
-								{
+							"remove_cost": {
+								"type": "macro",
+								"macro": {
 									"macro": "method",
-									"method": "get().getValue",
+									"method": "getValue",
 									"on": {
-										"type":"macro",
+										"type": "macro",
 										"macro": {
-											"macro": "max",
+											"macro": "method",
+											"method": "get",
 											"on": {
 												"type": "macro",
 												"macro": {
-													"macro": "groupby",
+													"macro": "max",
 													"on": {
 														"type": "macro",
 														"macro": {
-															"macro": "map",
+															"macro": "groupby",
 															"on": {
 																"type": "macro",
 																"macro": {
-																	"macro": "method",
-																	"method": "values",
+																	"macro": "map",
 																	"on": {
-																		"type": "variable",
-																		"variable": "active_hosts"
-																	}
+																		"type": "macro",
+																		"macro": {
+																			"macro": "method",
+																			"method": "values",
+																			"on": {
+																				"type": "variable",
+																				"variable": "active_hosts"
+																			}
+																		}
+																	},
+																	"map_type": "HostNat",
+																	"map_method": "getNat"
 																}
-															},
-															"map_type": "HostNat",
-															"map_method": "getNat"
+															}
 														}
 													}
 												}
@@ -1131,7 +1127,7 @@
 			"resource": "NatInfrastructureResource",
 			"default_port_connections": {
 				"WAN": "SWITCH_WAN:port",
-				"management": "SWITCH_MAN:port"
+				"management": "SWMAN:port"
 			},
 			"default_configuration": "nat_defaultconfig.json"
 		}

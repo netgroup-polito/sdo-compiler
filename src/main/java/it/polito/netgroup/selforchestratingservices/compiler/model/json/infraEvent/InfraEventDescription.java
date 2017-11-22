@@ -11,9 +11,12 @@ public class InfraEventDescription implements GenerateJavaCode {
 
 	public enum TYPE
 	{
-		NEW,
-		REMOVING,
-		REMOVED
+		NEW_RESOURCE,
+		REMOVING_RESOURCE,
+		REMOVED_RESOURCE,
+		NEW_VNF,
+		REMOVING_VNF,
+		REMOVED_VNF
 	};
 
 	@JsonProperty("id")

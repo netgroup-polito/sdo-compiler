@@ -6,13 +6,13 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import it.polito.netgroup.selforchestratingservices.compiler.TabGenerators;
-import it.polito.netgroup.selforchestratingservices.compiler.model.json.IfCondition;
+import it.polito.netgroup.selforchestratingservices.compiler.model.json.Condition;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.SelfOrchestratorModel;
 
 public class IfMacroDescription extends MacroDescription
 {
 	@JsonProperty("condition")
-	IfCondition condition;
+	Condition condition;
 	
 	@JsonProperty("on_true")
 	List<MacroDescription> on_true;

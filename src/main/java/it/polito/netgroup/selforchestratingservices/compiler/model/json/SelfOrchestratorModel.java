@@ -7,7 +7,6 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import it.polito.netgroup.selforchestratingservices.compiler.TabGenerators;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.event.EventCheckOnDescription;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.event.EventDescription;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.event.StateDescription;
@@ -18,6 +17,9 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 {
 	@JsonProperty("name")
 	public String name;
+	@JsonProperty("default_nffg_filename")
+	public String default_nffg_filename;
+
 	@JsonProperty("types")
 	public List<VariableTypeDescription> types;
 	@JsonProperty("variables")
@@ -30,14 +32,16 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 	public InfraEventsDescription infraEvents;
 	@JsonProperty("actions")
 	public List<ActionDescription> actions;
-	@JsonProperty("elementary_services")
-	public List<ElementaryServiceDescription> elementaryServices;
+	@JsonProperty("service_description")
+	public List<ServiceDescription> serviceDescriptions;
 	@JsonProperty("templates")
-	public List<ResourceTemplateDescription> templates;
-	@JsonProperty("default_nffg_filename")
-	public String default_nffg_filename;
+	public List<InfrastructureVNFTemplateDescription> templates;
 	
-	
+	public SelfOrchestratorModel()
+	{
+		variables = new ArrayList<>();
+	}
+
 	@Override
 	public String getJavaClassName(String prefix)
 	{
@@ -58,7 +62,7 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 				"public class "+getJavaClassName(prefix)+" extends AbstractSelfOrchestrator\n" + 
 				"{\n";
 
-		for(ElementaryServiceDescription elementaryService : elementaryServices)
+		for(ServiceDescription elementaryService : serviceDescriptions)
 		{
 			java = java + "\t" + elementaryService.getJavaClassName("") + " " + elementaryService.getJavaClassName("").toLowerCase() + ";\n";
 		}
@@ -66,7 +70,7 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 		java += "\tpublic "+getJavaClassName(prefix)+"(Framework framework)\n" +
 				"\t{\n"+
 				"\t\tsuper(framework,\""+default_nffg_filename+"\");\n";
-		
+
 		for(VariableDescription var : variables) {
 			java += "\t\t" + var.getJavaCodeInit(0,model);
 			java += "\t\t" + "variables.setVar(\"" + var.name + "\", " + var.name + ");\n";
@@ -139,18 +143,18 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 		}
 		java += "\n";
 
-		for(ElementaryServiceDescription elementaryService : elementaryServices)
+		for(ServiceDescription elementaryService : serviceDescriptions)
 		{
 			java += "\t\t" + elementaryService.getJavaClassName("").toLowerCase() + "  = new " + elementaryService.getJavaClassName("") + "(variables);\n";
 		}
 
-		for(ElementaryServiceDescription elementaryService : elementaryServices)
+		for(ServiceDescription elementaryService : serviceDescriptions)
 		{
 			java += "\t\telementaryServices.put(" + elementaryService.getJavaClassName("").toLowerCase() + ".getName()," + elementaryService.getJavaClassName("").toLowerCase() + ");\n";
 		}
 
 		java += "\t\tinfrastructureEventHandler = new MyInfrastructureEventHandler(variables);\n" +
-				"\t\tname=\"NAT_LB\";\n" +
+				"\t\tname=\""+name+"\";\n" +
 				"\t}\n"+
 				"}\n";
 		
@@ -158,6 +162,8 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 	}
 
 	private StateDescription getStateForVariable(String name) {
+		if (states == null ) return null;
+
 		for(StateDescription state: states)
 		{
 			if (state.type == StateDescription.TYPE.internal)
@@ -191,18 +197,16 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 	public List<StateDescription> getStateForType(String type)
 	{
 		List<StateDescription> ret = new ArrayList<>();
-		
-		for(StateDescription state : states )
-		{
-			for(EventCheckOnDescription on: state.check_on)
-			{
-				if ( on.type != null && on.type.equals(type))
-				{
-					ret.add(state);
+
+		if ( states != null ) {
+			for (StateDescription state : states) {
+				for (EventCheckOnDescription on : state.check_on) {
+					if (on.type != null && on.type.equals(type)) {
+						ret.add(state);
+					}
 				}
 			}
 		}
-			
 		return ret;
 	}
 
@@ -221,8 +225,8 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 		return ret;
 	}
 
-	public ResourceTemplateDescription getTemplateByName(String template_name) {
-		for(ResourceTemplateDescription template: templates)
+	public InfrastructureVNFTemplateDescription getTemplateByName(String template_name) {
+		for(InfrastructureVNFTemplateDescription template: templates)
 		{
 			if ( template.id.equals(template_name))
 			{
@@ -232,7 +236,7 @@ public class SelfOrchestratorModel implements GenerateJavaClass
 		throw new InvalidParameterException("Invalid resource template with name '"+template_name+"'");
 	}
 
-	public List<ResourceTemplateDescription> getTemplates() {
+	public List<InfrastructureVNFTemplateDescription> getTemplates() {
 		return templates;
 	}
 }

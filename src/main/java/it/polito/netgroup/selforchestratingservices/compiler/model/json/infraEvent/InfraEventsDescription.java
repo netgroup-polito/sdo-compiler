@@ -51,7 +51,7 @@ public class InfraEventsDescription implements GenerateJavaClass {
 		Boolean looped = false;
 		for( InfraEventDescription infraEventsDescription: infraEventDescriptions)
 		{
-			if (infraEventsDescription.type == InfraEventDescription.TYPE.NEW)
+			if (infraEventsDescription.type == InfraEventDescription.TYPE.NEW_RESOURCE)
 			{
 				java += infraEventsDescription.getJavaCode(true,2,model);
 			}
@@ -69,7 +69,7 @@ public class InfraEventsDescription implements GenerateJavaClass {
 		looped=false;
 		for( InfraEventDescription infraEventsDescription: infraEventDescriptions)
 		{
-			if (infraEventsDescription.type == InfraEventDescription.TYPE.REMOVING)
+			if (infraEventsDescription.type == InfraEventDescription.TYPE.REMOVING_RESOURCE)
 			{
 				java += infraEventsDescription.getJavaCode(true,2,model);
 			}
@@ -87,14 +87,71 @@ public class InfraEventsDescription implements GenerateJavaClass {
 		looped=false;
 		for( InfraEventDescription infraEventsDescription: infraEventDescriptions)
 		{
-			if (infraEventsDescription.type == InfraEventDescription.TYPE.REMOVED)
+			if (infraEventsDescription.type == InfraEventDescription.TYPE.REMOVED_RESOURCE)
 			{
 				java += infraEventsDescription.getJavaCode(true,2,model);
 			}
 		}
 
+		java +=	"\t}\n";
+
+
+		java += "\tpublic void on_vnf_added(InfrastructureVNF ivnf) throws Exception {\n";
+
+		for(VariableDescription var : model.variables)
+		{
+			java +=  var.getJavaCodeUsage(2)+"\n";
+		}
+
+		for( InfraEventDescription infraEventsDescription: infraEventDescriptions)
+		{
+			if (infraEventsDescription.type == InfraEventDescription.TYPE.NEW_VNF)
+			{
+				java += infraEventsDescription.getJavaCode(true,2,model);
+			}
+		}
 		java +=	"\t}\n" +
-				"}";
+				"\n" +
+				"\t@Override\n" +
+				"\tpublic void on_vnf_removing(InfrastructureVNF ivnf) throws Exception {\n";
+
+		for(VariableDescription var : model.variables)
+		{
+			java +=  var.getJavaCodeUsage(2)+"\n";
+		}
+
+		looped=false;
+		for( InfraEventDescription infraEventsDescription: infraEventDescriptions)
+		{
+			if (infraEventsDescription.type == InfraEventDescription.TYPE.REMOVING_VNF)
+			{
+				java += infraEventsDescription.getJavaCode(true,2,model);
+			}
+		}
+		java += "\t}\n" +
+				"\n" +
+				"\t@Override\n" +
+				"\tpublic void on_vnf_removed(InfrastructureVNF ivnf) throws Exception {\n";
+
+		for(VariableDescription var : model.variables)
+		{
+			java +=  var.getJavaCodeUsage(2)+"\n";
+		}
+
+		looped=false;
+		for( InfraEventDescription infraEventsDescription: infraEventDescriptions)
+		{
+			if (infraEventsDescription.type == InfraEventDescription.TYPE.REMOVED_VNF)
+			{
+				java += infraEventsDescription.getJavaCode(true,2,model);
+			}
+		}
+
+		java +=	"\t}\n";
+
+
+
+		java +=	"}";
 
 		return java;
 	}

@@ -10,25 +10,22 @@ import java.nio.file.Paths;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import it.polito.netgroup.selforchestratingservices.compiler.model.json.ElementaryServiceDescription;
+import it.polito.netgroup.selforchestratingservices.compiler.model.json.ServiceDescription;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.GenerateJavaClass;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.ImplementationDescription;
-import it.polito.netgroup.selforchestratingservices.compiler.model.json.ResourceRequirementsDescription;
+import it.polito.netgroup.selforchestratingservices.compiler.model.json.resourceRequirement.ResourceRequirementsDescription;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.SelfOrchestratorModel;
-import it.polito.netgroup.selforchestratingservices.compiler.model.json.ResourceTemplateDescription;
+import it.polito.netgroup.selforchestratingservices.compiler.model.json.InfrastructureVNFTemplateDescription;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.VariableTypeDescription;
 import it.polito.netgroup.selforchestratingservices.compiler.model.json.event.EventDescription;
 
 public class Compiler
 {
-	//TODO il campo params delle azioni non viene considerato
-	//TODO il campo params degli eventi viene considerato "poco"
-
 	public static void main(String[] args)
 	{
 		if (args.length < 1 )
 		{
-			System.err.println("USAGE: modello.json");
+			System.err.println("USAGE: model_filename java_package base_directory");
 			System.exit(1);
 		}
 		
@@ -59,37 +56,40 @@ public class Compiler
 		String path = base_dir+pack.replace(".", "/")+"/";
 		new File(path).mkdirs();
 
-		for(ElementaryServiceDescription elementaryServiceDescription : model.elementaryServices)
+		for(ServiceDescription serviceDescription : model.serviceDescriptions)
 		{
-			writeClass("", model, pack, path, elementaryServiceDescription);
+			writeClass("", model, pack, path, serviceDescription);
 			
-			for ( ImplementationDescription implementationDescription : elementaryServiceDescription.implementations)
+			for ( ImplementationDescription implementationDescription : serviceDescription.implementations)
 			{
-				writeClass(elementaryServiceDescription.name,model,pack,path,implementationDescription);
+				writeClass(serviceDescription.name,model,pack,path,implementationDescription);
 				
-				for (ResourceRequirementsDescription resource : implementationDescription.resources)
+				for (ResourceRequirementsDescription resource : implementationDescription.resources_used)
 				{
-					writeClass(elementaryServiceDescription.name+implementationDescription.name,model,pack,path,resource);
+					writeClass(serviceDescription.name+implementationDescription.name,model,pack,path,resource);
 				}
 			}			
 		}
 		
-		for(ResourceTemplateDescription template : model.templates)
+		for(InfrastructureVNFTemplateDescription template : model.templates)
 		{
 			writeClass("",model,pack,path,template);			
 		}
-		
-		for(EventDescription event : model.events)
-		{
-			writeClass("",model,pack,path,event);
+
+		if ( model.events != null ) {
+			for (EventDescription event : model.events) {
+				writeClass("", model, pack, path, event);
+			}
 		}
 
+		if ( model.infraEvents != null) {
+			writeClass("", model, pack, path, model.infraEvents);
+		}
 
-		writeClass("",model,pack,path,model.infraEvents);
-
-		for( VariableTypeDescription type : model.types)
-		{
-			writeClass("", model,pack,path,type);
+		if ( model.types != null ) {
+			for (VariableTypeDescription type : model.types) {
+				writeClass("", model, pack, path, type);
+			}
 		}
 		
 		writeClass("", model,pack,path,model);

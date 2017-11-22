@@ -12,10 +12,12 @@ import it.polito.netgroup.selforchestratingservices.compiler.model.json.Generate
     @JsonSubTypes.Type(value = ObjectParamDescription.class, name = "object"),
     @JsonSubTypes.Type(value = StringParamDescription.class, name = "string"),
     @JsonSubTypes.Type(value = IntegerParamDescription.class, name = "integer"),
-    @JsonSubTypes.Type(value = BooleanParamDescription.class, name = "boolean"),
+	@JsonSubTypes.Type(value = DoubleParamDescription.class, name = "double"),
+	@JsonSubTypes.Type(value = BooleanParamDescription.class, name = "boolean"),
     @JsonSubTypes.Type(value = VariableParamDescription.class, name = "variable"),
     @JsonSubTypes.Type(value = MacroParamDescription.class, name = "macro"),
 })
+
 public abstract class ParamDescription implements GenerateJavaCode
 {
 	public enum TYPE
