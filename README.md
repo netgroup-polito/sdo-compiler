@@ -2,7 +2,7 @@
 
 This Java program generate some Java classes from a service description model.
 
-The params required are:
+The arguments required are:
 - model_filename: The path of the JSON file that contains the service description model
 - java_package: The Java package of the output classes (if you are using Polito SDO-module use it.polito.netgroup.selforchestratingservices.auto)
 - base_directory: Where the ouput Java classes are saved (if you are using Polito SDO-module use SDO-module-path/src/main/java/)
